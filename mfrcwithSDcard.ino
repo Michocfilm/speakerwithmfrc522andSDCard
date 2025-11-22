@@ -95,6 +95,15 @@ void i2s_init() {
   i2s_set_pin(I2S_NUM_0, &pin_config);
 }
 
+//------------------- FIX NOISE -------------------
+const int SILENT_SAMPLES = 512;
+int16_t silentBuf[SILENT_SAMPLES] = {0};
+
+void feedSilence() {
+    size_t bytes_written;
+    i2s_write(I2S_NUM_0, silentBuf, sizeof(silentBuf), &bytes_written, portMAX_DELAY);
+}
+
 
 // ------------------- TASK: RFID -------------------
 void TaskRFID(void *pv) {
@@ -137,6 +146,14 @@ void TaskRFID(void *pv) {
 void TaskAudio(void *pv) {
 
   while (1) {
+    
+        // -------------- ถ้าไม่ได้เล่นเพลง → ส่ง silence --------------
+    if (!isPlaying) {
+        size_t bytes_written;
+        i2s_write(I2S_NUM_0, silentBuf, sizeof(silentBuf), &bytes_written, portMAX_DELAY);
+        vTaskDelay(1);
+        continue;   // กลับไปลูปใหม่ ไม่ต้องอ่านไฟล์
+    }
 
     if (isPlaying && file) {
 
